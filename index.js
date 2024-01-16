@@ -3,10 +3,16 @@ const jsonServer = require('json-server');
 var cors = require('cors');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const tempDir = require('os').tmpdir();
+
+if (!fs.existsSync(path.resolve(__dirname, tempDir, 'db.json'))) {
+  const db = fs.readFileSync(path.resolve(__dirname, 'db.json'), 'utf-8');
+  fs.writeFileSync(path.resolve(__dirname, tempDir, 'db.json'), db);
+}
 
 const server = jsonServer.create();
 
-const router = jsonServer.router(path.resolve(__dirname, 'db.json'));
+const router = jsonServer.router(path.resolve(__dirname, tempDir, 'db.json'));
 
 server.use(cors());
 server.use(jsonServer.defaults());
@@ -21,7 +27,7 @@ server.post('/login', (req, res) => {
   const { username, password } = req.body;
 
   console.log(`username:\x1b[32m ${username}\x1b[0m, password:\x1b[32m ${password}\x1b[0m`);
-  const db = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'db.json'), 'utf-8'));
+  const db = JSON.parse(fs.readFileSync(path.resolve(__dirname, tempDir, 'db.json'), 'utf-8'));
   const { users } = db;
 
   const userFromDB = users.find(user => user.username === username && user.password === password);
