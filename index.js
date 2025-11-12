@@ -32,18 +32,49 @@ server.post('/login', (req, res) => {
 
   const userFromDB = users.find(user => user.username === username && user.password === password);
 
-  if (userFromDB) return res.json(userFromDB);
+  if (userFromDB) {
+    const { password, ...userWithoutPassword } = userFromDB;
+    return res.json(userWithoutPassword);
+  }
 
   return res.status(403).json({ message: 'AUTH ERROR 2' });
 });
 
 // authentication check
 server.use((req, res, next) => {
+  const openRoutes = ['/articles', '/profile', '/comments'];
+
+  const isOpenRoute = openRoutes.some(route => req.path.startsWith(route));
+  const isReadMethod = req.method === 'GET';
+
+  if (isOpenRoute && isReadMethod) {
+    return next();
+  }
+
   if (!req.headers.authorization) {
-    return res.status(403).json({ message: 'AUTH ERROR 1' });
+    return res.status(403).json({ message: 'AUTH ERROR' });
   }
 
   next();
+});
+
+server.get('/users', (req, res) => {
+  const db = JSON.parse(fs.readFileSync(path.resolve(__dirname, tempDir, 'db.json'), 'utf-8'));
+  const { users } = db;
+
+  const safeUsers = users.map(({ password, ...user }) => user);
+  res.json(safeUsers);
+});
+
+server.get('/users/:id', (req, res) => {
+  const db = JSON.parse(fs.readFileSync(path.resolve(__dirname, tempDir, 'db.json'), 'utf-8'));
+  const { users } = db;
+
+  const user = users.find(u => u.id === Number(req.params.id));
+  if (!user) return res.status(404).json({ message: 'User not found' });
+
+  const { password, ...safeUser } = user;
+  res.json(safeUser);
 });
 
 // server.get('/profile', (req, res) => {
